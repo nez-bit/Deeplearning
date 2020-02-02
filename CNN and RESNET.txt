@@ -1,0 +1,150 @@
+
+import tensorflow as tf
+import keras
+from PIL import Image
+from keras.engine.topology import Layer
+from keras.models import Sequential
+from keras.layers import Conv2D
+from keras.layers import MaxPooling2D
+from keras.layers import Flatten
+from keras.layers import Dropout
+from keras.layers import Dense,Add,Activation
+from keras.preprocessing.image import ImageDataGenerator
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+classifier = Sequential()
+classifier.add(Conv2D(32, (3, 3), input_shape = (200, 170, 3), activation = 'relu'))
+classifier.add(MaxPooling2D(pool_size = (2, 2)))
+classifier.add(Conv2D(32, (3, 3), activation = 'relu'))
+classifier.add(MaxPooling2D(pool_size = (2, 2)))
+classifier.add(Conv2D(32, (3, 3), activation = 'relu'))
+classifier.add(MaxPooling2D(pool_size = (2, 2)))
+classifier.add(Flatten())
+classifier.add(Dense(units = 1024, activation = 'relu'))
+classifier.add(Dense(units = 90, activation = 'softmax'))
+classifier.compile(optimizer='adam',loss='categorical_crossentropy', metrics=['accuracy'])
+train_datagen = ImageDataGenerator(rescale = 1./255,
+                                  shear_range = 0.2,
+                                  zoom_range = 0.2,
+                                horizontal_flip = True)
+test_datagen = ImageDataGenerator(rescale = 1./255)
+training_set = train_datagen.flow_from_directory('/home/ubuntu/anaconda2/train',
+target_size = (200, 170),
+batch_size = 15,
+class_mode = 'categorical')
+test_set = test_datagen.flow_from_directory('/home/ubuntu/anaconda2/test',
+target_size = (200, 170),
+batch_size = 15,
+class_mode = 'categorical')
+history = classifier.fit_generator(training_set,
+steps_per_epoch = 30,
+epochs = 30,
+validation_data = test_set,
+validation_steps = 91)
+
+
+# Define the residual block as a new layer
+class Residual(Layer):
+    def __init__(self, channels_in,kernel,**kwargs):
+        super(Residual, self).__init__(**kwargs)
+        self.channels_in = channels_in
+        self.kernel = kernel
+
+    def call(self, x):
+        # the residual block using Keras functional API
+        first_layer =   Activation("linear", trainable=False)(x)
+        x =             Conv2D( self.channels_in,
+                                self.kernel,
+                                padding="same")(first_layer)
+        x =             Activation("relu")(x)
+        x =             Conv2D( self.channels_in,
+                                self.kernel,
+                                padding="same")(x)
+        residual =      Add()([x, first_layer])
+        x =             Activation("relu")(residual)
+        return x
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
+classifier = Sequential()
+classifier.add(Conv2D(32, (3, 3), input_shape = (200, 170, 3), activation = 'relu'))
+classifier.add(MaxPooling2D(pool_size = (2, 2)))
+
+classifier.add(Residual(32, (3, 3)))
+classifier.add(MaxPooling2D(pool_size = (2, 2)))
+
+classifier.add(Residual(32, (3, 3)))
+classifier.add(MaxPooling2D(pool_size = (2, 2)))
+
+classifier.add(Flatten())
+classifier.add(Dense(units = 1024, activation = 'relu'))
+classifier.add(Dense(units = 90, activation = 'softmax'))
+classifier.compile(optimizer='adam',loss='categorical_crossentropy', metrics=['accuracy'])
+train_datagen = ImageDataGenerator(rescale = 1./255,
+                                  shear_range = 0.2,
+                                  zoom_range = 0.2,
+                                   horizontal_flip = True)
+test_datagen = ImageDataGenerator(rescale = 1./255)
+training_set = train_datagen.flow_from_directory('/home/ubuntu/anaconda2/train',
+target_size = (200, 170),
+batch_size = 15,
+class_mode = 'categorical')
+test_set = test_datagen.flow_from_directory('/home/ubuntu/anaconda2/test',
+target_size = (200, 170),
+batch_size = 15,
+class_mode = 'categorical')
+h = classifier.fit_generator(training_set,
+steps_per_epoch = 30,
+epochs = 30,
+validation_data = test_set,
+validation_steps = 91)
+
+
+classifier = Sequential()
+classifier.add(Conv2D(32, (3, 3), input_shape = (200, 170, 3), activation = 'relu'))
+classifier.add(MaxPooling2D(pool_size = (2, 2)))
+classifier.add(Residual(32, (3, 3)))
+classifier.add(MaxPooling2D(pool_size = (2, 2)))
+classifier.add(Conv2D(32, (3, 3), activation = 'relu'))
+classifier.add(MaxPooling2D(pool_size = (2, 2)))
+classifier.add(Flatten())
+classifier.add(Dense(units = 1024, activation = 'relu'))
+classifier.add(Dense(units = 90, activation = 'softmax'))
+classifier.compile(optimizer='adam',loss='categorical_crossentropy', metrics=['accuracy'])
+train_datagen = ImageDataGenerator(rescale = 1./255,
+                                  shear_range = 0.2,
+                                  zoom_range = 0.2,
+                                   horizontal_flip = True)
+test_datagen = ImageDataGenerator(rescale = 1./255)
+training_set = train_datagen.flow_from_directory('/home/ubuntu/anaconda2/train',
+target_size = (200, 170),
+batch_size = 15,
+class_mode = 'categorical')
+test_set = test_datagen.flow_from_directory('/home/ubuntu/anaconda2/test',
+target_size = (200, 170),
+batch_size = 15,
+class_mode = 'categorical')
+hi = classifier.fit_generator(training_set,
+steps_per_epoch = 30,
+epochs = 30,
+validation_data = test_set,
+validation_steps = 91)
+
+plt.figure(0) 
+plt.plot(history.history['acc'],'r') 
+plt.xticks(np.arange(0, 11, 2.0)) 
+plt.rcParams['figure.figsize'] = (8, 6) 
+plt.plot(h.history['acc'],'b') 
+plt.xticks(np.arange(0, 11, 2.0)) 
+plt.rcParams['figure.figsize'] = (8, 6) 
+plt.plot(hi.history['acc'],'g') 
+plt.xticks(np.arange(0, 11, 2.0)) 
+plt.rcParams['figure.figsize'] = (8, 6) 
+plt.xlabel("Num of Epochs") 
+plt.ylabel("Accuracy") 
+plt.title("Training Accuracy") 
+plt.legend(['convnet','resnet','mixed'])
